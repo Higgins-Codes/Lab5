@@ -2,15 +2,100 @@
 
 const img = new Image(); // used to load image from <input> and draw to canvas
 
+// const file = document.getElementById('user-image');
+// console.log(file);
+// img.src = URL.createObjectURL(file);
+
+
+// const fileUpload = document.getElementById('image-input');
+// fileUpload.addEventListener('change', () => {
+//   const file = document.getElementById("image-input");
+//   console.log(file);
+//   img.src = URL.createObjectURL(file);
+// })
+
+img.src = 'images/lab.jpg';
+
+const canvas = document.getElementById('user-image');
+const ctx = canvas.getContext('2d');
+
 // Fires whenever the img object loads a new image (such as with img.src =)
 img.addEventListener('load', () => {
-  // TODO
+  console.log("image loaded");
+  
+  // Clear canvas of previous image
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Fill with black border
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  const dimensions = getDimensions(canvas.width, canvas.height, img.width, img.height);
+  ctx.drawImage(img, dimensions.startX, dimensions.startY, dimensions.width, dimensions.height);
+  
   // Some helpful tips:
   // - Fill the whole Canvas with black first to add borders on non-square images, then draw on top
   // - Clear the form when a new image is selected
   // - If you draw the image to canvas here, it will update as soon as a new image is selected
 });
+
+const form = document.getElementById("generate-meme");
+const clear_btn = document.getElementById("button-group").children[0];
+const read_btn = document.getElementById("button-group").children[1];
+const voice_select = document.getElementById("voice-selection");
+
+
+form.addEventListener('submit', (event) => {
+  // Prevents page from refreshing on submission
+  event.preventDefault();
+
+  const top_text = document.getElementById("text-top").value;
+  const bot_text = document.getElementById("text-bottom").value;
+  
+  ctx.font = "50px Arial";
+  ctx.fillStyle = "red";
+  ctx.textAlign = "center";
+  ctx.fillText(top_text, canvas.width / 2, 50);
+  ctx.fillText(bot_text, canvas.width / 2, canvas.height - 30);
+
+  // toggle buttons
+  clear_btn.removeAttribute("disabled");
+  read_btn.removeAttribute("disabled");
+  voice_select.removeAttribute("disabled");
+});
+
+clear_btn.addEventListener("click", () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+});
+
+read_btn.addEventListener("click", () => {
+  const top_text = document.getElementById("text-top").value;
+  const bot_text = document.getElementById("text-bottom").value;
+
+  const voices = window.speechSynthesis.getVoices();
+  console.log(voices);
+  
+  for(var i = 0; i < voices.length ; i++) {
+    var option = voice_select;
+    option.textContent = voices[i].name + ' (' + voices[i].lang + ')';
+
+    if(voices[i].default) {
+      option.textContent += ' -- DEFAULT';
+    }
+
+    option.setAttribute('data-lang', voices[i].lang);
+    option.setAttribute('data-name', voices[i].name);
+    voiceSelect.appendChild(option);
+  }
+
+  let utterance = new SpeechSynthesisUtterance(top_text);
+  speechSynthesis.speak(utterance);
+  utterance = new SpeechSynthesisUtterance(bot_text);
+  speechSynthesis.speak(utterance);
+
+  if (speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = populateVoiceList;
+  }
+});
+
 
 /**
  * Takes in the dimensions of the canvas and the new image, then calculates the new
@@ -23,7 +108,7 @@ img.addEventListener('load', () => {
  * and also the starting X and starting Y coordinate to be used when you draw the new image to the
  * Canvas. These coordinates align with the top left of the image.
  */
-function getDimmensions(canvasWidth, canvasHeight, imageWidth, imageHeight) {
+function getDimensions(canvasWidth, canvasHeight, imageWidth, imageHeight) {
   let aspectRatio, height, width, startX, startY;
 
   // Get the aspect ratio, used so the picture always fits inside the canvas
