@@ -16,8 +16,53 @@ const img = new Image(); // used to load image from <input> and draw to canvas
 
 img.src = 'images/lab.jpg';
 
+// Setup canvas and context for drawing
 const canvas = document.getElementById('user-image');
 const ctx = canvas.getContext('2d');
+
+// Speech synth
+let voices = [];
+var synth = window.speechSynthesis;
+const MIN_VOL = 0.001;
+
+// Populate select voice
+function populateVoiceList() {
+  voices = synth.getVoices();
+  
+  console.log(voices);
+
+  for(var i = 0; i < voices.length ; i++) {
+    var option = document.createElement('option');
+    option.textContent = voices[i].name + ' (' + voices[i].lang + ')';
+
+    if(voices[i].default) {
+      option.textContent += ' -- DEFAULT';
+    }
+
+    option.setAttribute('data-lang', voices[i].lang);
+    option.setAttribute('data-name', voices[i].name);
+    voice_select.appendChild(option);
+  }
+}
+
+populateVoiceList();
+if (speechSynthesis.onvoiceschanged !== undefined) {
+  speechSynthesis.onvoiceschanged = populateVoiceList;
+}
+
+// Select button options
+const form = document.getElementById("generate-meme");
+const clear_btn = document.getElementById("button-group").children[0];
+const read_btn = document.getElementById("button-group").children[1];
+const voice_select = document.getElementById("voice-selection");
+
+// Volume meter element
+const volume_icon = document.getElementById("volume-group").children[0];
+const volume_meter = document.getElementById("volume-group").children[1];
+
+/**
+ * Event Listeners
+ */
 
 // Fires whenever the img object loads a new image (such as with img.src =)
 img.addEventListener('load', () => {
@@ -37,12 +82,7 @@ img.addEventListener('load', () => {
   // - If you draw the image to canvas here, it will update as soon as a new image is selected
 });
 
-const form = document.getElementById("generate-meme");
-const clear_btn = document.getElementById("button-group").children[0];
-const read_btn = document.getElementById("button-group").children[1];
-const voice_select = document.getElementById("voice-selection");
-
-
+// Form submission
 form.addEventListener('submit', (event) => {
   // Prevents page from refreshing on submission
   event.preventDefault();
@@ -66,36 +106,58 @@ clear_btn.addEventListener("click", () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 });
 
+
+// Read Text
 read_btn.addEventListener("click", () => {
   const top_text = document.getElementById("text-top").value;
   const bot_text = document.getElementById("text-bottom").value;
-
-  const voices = window.speechSynthesis.getVoices();
-  console.log(voices);
   
-  for(var i = 0; i < voices.length ; i++) {
-    var option = voice_select;
-    option.textContent = voices[i].name + ' (' + voices[i].lang + ')';
+  // Actual read (top_text concatenated with bot_text)
+  let all_text = `${top_text}\n${bot_text}`;
 
-    if(voices[i].default) {
-      option.textContent += ' -- DEFAULT';
-    }
+  // Utterance which will be spoken
+  let utterance = new SpeechSynthesisUtterance(all_text);
 
-    option.setAttribute('data-lang', voices[i].lang);
-    option.setAttribute('data-name', voices[i].name);
-    voiceSelect.appendChild(option);
+  utterance.volume = volume_meter.value / 100;
+  if (utterance.volume == 0) {
+    utterance.volume = MIN_VOL;
   }
+  
+  // Find the name of the selected voice option
+  var selected_option = voice_select.selectedOptions[0].getAttribute('data-name');
 
-  let utterance = new SpeechSynthesisUtterance(top_text);
+  // Set the voice for the voice read
+  for(var i = 0; i < voices.length ; i++) {
+    if(voices[i].name === selected_option) {
+      utterance.voice = voices[i];
+      break;
+    }
+  }
+  
   speechSynthesis.speak(utterance);
-  utterance = new SpeechSynthesisUtterance(bot_text);
-  speechSynthesis.speak(utterance);
+});
 
-  if (speechSynthesis.onvoiceschanged !== undefined) {
-    speechSynthesis.onvoiceschanged = populateVoiceList;
+
+volume_meter.addEventListener("change", () => {
+  if (volume_meter.value >= 67) {
+    volume_icon.setAttribute("src", "icons/volume-level-3.svg");
+  }
+  else if (volume_meter.value >= 34) {
+    volume_icon.setAttribute("src", "icons/volume-level-2.svg");
+  }
+  else if (volume_meter.value >= 1) {
+    volume_icon.setAttribute("src", "icons/volume-level-1.svg");
+  }
+  else {
+    volume_icon.setAttribute("src", "icons/volume-level-0.svg");
   }
 });
 
+
+// volume-level-3: 67-100
+// volume-level-2: 34-66
+// volume-level-1: 1-33
+// volume-level-0: 0
 
 /**
  * Takes in the dimensions of the canvas and the new image, then calculates the new
