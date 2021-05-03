@@ -2,7 +2,7 @@
 
 ## Author(s):
 - Ryan Lay
-- Sanjai Suramanian
+- Sanjai Subramanian
 
 ## Part 1:
 
