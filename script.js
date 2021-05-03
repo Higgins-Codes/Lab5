@@ -2,23 +2,11 @@
 
 const img = new Image(); // used to load image from <input> and draw to canvas
 
-// const file = document.getElementById('user-image');
-// console.log(file);
-// img.src = URL.createObjectURL(file);
-
-
-// const fileUpload = document.getElementById('image-input');
-// fileUpload.addEventListener('change', () => {
-//   const file = document.getElementById("image-input");
-//   console.log(file);
-//   img.src = URL.createObjectURL(file);
-// })
-
-img.src = 'images/lab.jpg';
-
 // Setup canvas and context for drawing
 const canvas = document.getElementById('user-image');
 const ctx = canvas.getContext('2d');
+
+let dimensions;
 
 // Speech synth
 let voices = [];
@@ -28,8 +16,6 @@ const MIN_VOL = 0.001;
 // Populate select voice
 function populateVoiceList() {
   voices = synth.getVoices();
-  
-  console.log(voices);
 
   for(var i = 0; i < voices.length ; i++) {
     var option = document.createElement('option');
@@ -52,6 +38,7 @@ if (speechSynthesis.onvoiceschanged !== undefined) {
 
 // Select button options
 const form = document.getElementById("generate-meme");
+const img_btn = document.getElementById("image-input");
 const clear_btn = document.getElementById("button-group").children[0];
 const read_btn = document.getElementById("button-group").children[1];
 const voice_select = document.getElementById("voice-selection");
@@ -64,17 +51,21 @@ const volume_meter = document.getElementById("volume-group").children[1];
  * Event Listeners
  */
 
+// Loads new file upload
+img_btn.addEventListener('change', () => {
+
+  const img_url = URL.createObjectURL(img_btn.files[0]);
+
+  img.src = img_url;
+});
+
 // Fires whenever the img object loads a new image (such as with img.src =)
 img.addEventListener('load', () => {
-  console.log("image loaded");
   
-  // Clear canvas of previous image
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // Fill with black border
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Dimensions array for img on canvas
+  dimensions = getDimensions(canvas.width, canvas.height, img.width, img.height);
 
-  const dimensions = getDimensions(canvas.width, canvas.height, img.width, img.height);
-  ctx.drawImage(img, dimensions.startX, dimensions.startY, dimensions.width, dimensions.height);
+  drawCanvas();
   
   // Some helpful tips:
   // - Fill the whole Canvas with black first to add borders on non-square images, then draw on top
@@ -89,23 +80,26 @@ form.addEventListener('submit', (event) => {
 
   const top_text = document.getElementById("text-top").value;
   const bot_text = document.getElementById("text-bottom").value;
-  
+
+  drawCanvas();
+
   ctx.font = "50px Arial";
   ctx.fillStyle = "red";
   ctx.textAlign = "center";
   ctx.fillText(top_text, canvas.width / 2, 50);
   ctx.fillText(bot_text, canvas.width / 2, canvas.height - 30);
-
+  ctx.fillStyle = "black";
+  
   // toggle buttons
   clear_btn.removeAttribute("disabled");
   read_btn.removeAttribute("disabled");
   voice_select.removeAttribute("disabled");
 });
 
+// Clear canvas
 clear_btn.addEventListener("click", () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 });
-
 
 // Read Text
 read_btn.addEventListener("click", () => {
@@ -137,7 +131,7 @@ read_btn.addEventListener("click", () => {
   speechSynthesis.speak(utterance);
 });
 
-
+// Adjust Volume
 volume_meter.addEventListener("change", () => {
   if (volume_meter.value >= 67) {
     volume_icon.setAttribute("src", "icons/volume-level-3.svg");
@@ -152,12 +146,6 @@ volume_meter.addEventListener("change", () => {
     volume_icon.setAttribute("src", "icons/volume-level-0.svg");
   }
 });
-
-
-// volume-level-3: 67-100
-// volume-level-2: 34-66
-// volume-level-1: 1-33
-// volume-level-0: 0
 
 /**
  * Takes in the dimensions of the canvas and the new image, then calculates the new
@@ -197,4 +185,13 @@ function getDimensions(canvasWidth, canvasHeight, imageWidth, imageHeight) {
   }
 
   return { 'width': width, 'height': height, 'startX': startX, 'startY': startY }
+}
+
+/**
+ * Draws out the image and background on the canvas
+ */
+function drawCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, dimensions.startX, dimensions.startY, dimensions.width, dimensions.height);
 }
